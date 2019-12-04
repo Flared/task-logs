@@ -3,35 +3,33 @@ from datetime import datetime
 
 from dramatiq import Middleware, Broker, Message
 
-from .engines.engine import WriteEngine
+from .backends.backend import WriterBackend
 
 
 class TaskLogsMiddleware(Middleware):
-    def __init__(self, engine: WriteEngine):
-        self.engine = engine
+    def __init__(self, backend: WriterBackend):
+        self.backend = backend
 
     @property
     def actor_options(self) -> Set[str]:
         return {"log"}
 
     def after_enqueue(self, broker: Broker, message: Message, delay: float) -> None:
-        self.engine.log_enqueued(
+        self.backend.write_enqueued(
             {
                 "queue": message.queue_name,
                 "task_id": message.message_id,
                 "task_name": message.actor_name,
                 "task_path": None,
-                "enqueued_at": datetime.now(),
                 "execute_at": None,
                 "args": message.args,
                 "kwargs": message.kwargs,
                 "options": message.options,
             }
         )
-        print("after_enqueue")
 
     def before_process_message(self, broker: Broker, message: Message) -> None:
-        print("before_process_message")
+        self.backend.write_dequeued(message.message_id)
 
     def after_process_message(
         self,
@@ -41,7 +39,10 @@ class TaskLogsMiddleware(Middleware):
         result: Any = None,
         exception: Optional[BaseException] = None
     ) -> None:
-        print("after_process_message")
+        if exception is None:
+            self.backend.write_completed(message.message_id, result=result)
+        else:
+            self.backend.write_exception(message.message_id, exception=exception)
 
     def after_nack(self, broker: Broker, message: Message) -> None:
-        print("after_nack")
+        self.backend.write_failed(message.message_id)
