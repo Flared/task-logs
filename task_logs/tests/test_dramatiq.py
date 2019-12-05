@@ -7,7 +7,6 @@ from dramatiq import Worker
 from dramatiq.brokers.stub import StubBroker
 from freezegun import freeze_time
 
-from task_logs.backends.file import FileWriterBackend, FileReaderBackend
 from task_logs.dramatiq import TaskLogsMiddleware
 
 

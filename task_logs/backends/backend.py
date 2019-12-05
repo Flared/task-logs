@@ -2,7 +2,7 @@ import abc
 
 from datetime import datetime
 
-from typing import Union, List, Dict, Any, Optional
+from typing import Union, List, Dict, Any, Optional, cast
 from typing_extensions import TypedDict, Literal
 
 
@@ -99,30 +99,29 @@ class WriterBackend(abc.ABC):
 
 
 class ReaderBackend(abc.ABC):
-    @abc.abstractmethod
     def enqueued(self) -> List[EnqueuedLog]:
-        raise NotImplementedError
+        return cast(List[EnqueuedLog], self.logs_by_type("enqueued"))
 
-    @abc.abstractmethod
     def dequeued(self) -> List[DequeuedLog]:
-        raise NotImplementedError
+        return self.logs_by_type("dequeued")
 
-    @abc.abstractmethod
     def completed(self) -> List[CompletedLog]:
-        raise NotImplementedError
+        return cast(List[CompletedLog], self.logs_by_type("completed"))
 
-    @abc.abstractmethod
     def exception(self) -> List[ExceptionLog]:
+        return cast(List[ExceptionLog], self.logs_by_type("exception"))
+
+    def failed(self) -> List[FailedLog]:
+        return self.logs_by_type("failed")
+
+    @abc.abstractmethod
+    def find_task(self, task_id: str) -> List[Log]:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def failed(self) -> List[FailedLog]:
+    def logs_by_type(self, type: str) -> List[Log]:
         raise NotImplementedError
 
     @abc.abstractmethod
     def search(self, query: str) -> List[Log]:
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def find_task(self, task_id: str) -> List[Log]:
         raise NotImplementedError

@@ -69,28 +69,13 @@ class ElasticsearchBackend(WriterBackend, ReaderBackend):
     def _init(self) -> None:
         self.es.indices.put_template(name="task-logs-template", body=TASK_LOGS_TEMPLATE)
 
-    def enqueued(self) -> List[EnqueuedLog]:
-        return cast(List[EnqueuedLog], self._search_by_type("enqueued"))
-
-    def dequeued(self) -> List[DequeuedLog]:
-        return self._search_by_type("dequeued")
-
-    def completed(self) -> List[CompletedLog]:
-        return cast(List[CompletedLog], self._search_by_type("completed"))
-
-    def exception(self) -> List[ExceptionLog]:
-        return cast(List[ExceptionLog], self._search_by_type("exception"))
-
-    def failed(self) -> List[FailedLog]:
-        return self._search_by_type("failed")
-
     def search(self, query: str) -> List[Log]:
         raise NotImplementedError
 
     def find_task(self, task_id: str) -> List[Log]:
         raise NotImplementedError
 
-    def _search_by_type(self, type: str) -> List[Log]:
+    def logs_by_type(self, type: str) -> List[Log]:
         response = self.es.search(
             index=INDEX_PREFIX + "*",
             body={
