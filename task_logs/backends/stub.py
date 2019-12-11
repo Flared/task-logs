@@ -1,4 +1,5 @@
-from typing import List, cast
+import traceback
+from typing import List, cast, Union
 from .backend import (
     ReaderBackend,
     WriterBackend,
@@ -24,6 +25,15 @@ class StubBackend(ReaderBackend, WriterBackend):
             task["args"] = list(task["args"])
 
         super().write_enqueued(task)
+
+    def write_exception(self, task_id: str, *, exception: Union[BaseException, str]) -> None:
+        if isinstance(exception, BaseException):
+            exception = "\n".join(
+                traceback.format_exception(
+                    etype=type(exception), value=exception, tb=exception.__traceback__
+                )
+            )
+        return super().write_exception(task_id, exception=exception)
 
     def search(self, query: str) -> List[Log]:
         return [l for l in self.logs if query in str(l)]

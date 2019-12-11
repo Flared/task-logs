@@ -1,9 +1,10 @@
-import json
+import traceback
 from datetime import datetime
 from typing import IO, Any, Union, Iterable, List, Optional, Dict, overload, cast
 from typing_extensions import Literal
 
 from elasticsearch import Elasticsearch
+from elasticsearch.serializer import JSONSerializer
 
 from .backend import (
     WriterBackend,
@@ -25,6 +26,7 @@ TASK_LOGS_MAPPING = {
         "task_id": {"type": "keyword"},
         "type": {"type": "keyword"},
         "result": {"enabled": False, "type": "object"},
+        "exception": {"enabled": False, "type": "object"},
         "task": {
             "properties": {
                 "queue": {"type": "keyword"},
@@ -47,6 +49,17 @@ TASK_LOGS_TEMPLATE = {
 }
 
 
+class JSONSerializerWithError(JSONSerializer):
+    def default(self, data: Any) -> Any:
+        if isinstance(data, BaseException):
+            return "\n".join(
+                traceback.format_exception(
+                    etype=type(data), value=data, tb=data.__traceback__
+                )
+            )
+        return super().default(data)
+
+
 class ElasticsearchBackend(WriterBackend, ReaderBackend):
     def __init__(
         self,
@@ -56,7 +69,9 @@ class ElasticsearchBackend(WriterBackend, ReaderBackend):
         force_refresh: bool = False,
         **options: Any
     ) -> None:
-        self.es = Elasticsearch(connections, **options)
+        self.es = Elasticsearch(
+            connections, serializer=JSONSerializerWithError(), **options
+        )
         self.index_postfix = index_postfix
         self.force_refresh = force_refresh
 
@@ -93,7 +108,7 @@ class ElasticsearchBackend(WriterBackend, ReaderBackend):
 
     @staticmethod
     def _load_datetimes(hit: Dict) -> Log:
-        hit["timestamp"] = datetime.strptime(hit["timestamp"], "%Y-%m-%dT%H:%M:%S")
+        hit["timestamp"] = datetime.strptime(hit["timestamp"][:19], "%Y-%m-%dT%H:%M:%S")
         task = hit.get("task")
         if task and task.get("execute_at"):
             task["execute_at"] = datetime.strptime(

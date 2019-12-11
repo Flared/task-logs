@@ -31,7 +31,7 @@ def frozen_time():
         yield
 
 
-def test_task_logs(broker, worker, backend, frozen_time):
+def test_dramatiq_completion(broker, worker, backend, frozen_time):
     @dramatiq.actor(queue_name="test")
     def simple_task(a, b):
         return "hello"
@@ -78,3 +78,84 @@ def test_task_logs(broker, worker, backend, frozen_time):
             "type": "completed",
         }
     ]
+
+
+def test_dramatiq_error(broker, worker, backend, frozen_time):
+    @dramatiq.actor(queue_name="test")
+    def simple_task_error():
+        raise ValueError("Expected")
+
+    message = simple_task_error.send_with_options(time_limit=10000)
+
+    assert backend.enqueued() == [
+        {
+            "type": "enqueued",
+            "timestamp": datetime.now(),
+            "task_id": message.message_id,
+            "task": {
+                "queue": "test",
+                "task_id": message.message_id,
+                "task_name": "simple_task_error",
+                "task_path": None,
+                "execute_at": None,
+                "args": [],
+                "kwargs": {},
+                "options": {"time_limit": 10000},
+            },
+        }
+    ]
+
+    assert backend.dequeued() == []
+    assert backend.completed() == []
+
+    worker.start()
+    broker.join(simple_task_error.queue_name)
+    worker.join()
+
+    assert backend.dequeued() == [
+        {
+            "task_id": message.message_id,
+            "timestamp": datetime.now(),
+            "type": "dequeued",
+        }
+    ]
+    exceptions = backend.exception()
+    for exception in exceptions:
+        assert 'ValueError("Expected")' in exception.pop("exception")
+    assert exceptions == [
+        {
+            "task_id": message.message_id,
+            "timestamp": datetime.now(),
+            "type": "exception",
+        }
+    ]
+
+
+@pytest.mark.parametrize(
+    "actor_log,task_log,log_expected",
+    [
+        (None, None, True),
+        (False, None, False),
+        (True, None, True),
+        (None, False, False),
+        (False, False, False),
+        (True, False, False),
+        (None, True, True),
+        (False, True, True),
+        (True, True, True),
+    ],
+)
+def test_disabled_log(broker, worker, backend, actor_log, task_log, log_expected):
+    @dramatiq.actor(queue_name="test", log=actor_log)
+    def simple_task_with_log_option():
+        pass
+
+    simple_task_with_log_option.send_with_options(log=task_log)
+
+    worker.start()
+    broker.join(simple_task_with_log_option.queue_name)
+    worker.join()
+
+    expected = 1 if log_expected else 0
+    assert len(backend.dequeued()) == expected
+    assert len(backend.completed()) == expected

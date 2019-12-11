@@ -15,6 +15,9 @@ class TaskLogsMiddleware(Middleware):
         return {"log"}
 
     def after_enqueue(self, broker: Broker, message: Message, delay: float) -> None:
+        if not self.should_log(broker, message):
+            return
+
         self.backend.write_enqueued(
             {
                 "queue": message.queue_name,
@@ -29,6 +32,9 @@ class TaskLogsMiddleware(Middleware):
         )
 
     def before_process_message(self, broker: Broker, message: Message) -> None:
+        if not self.should_log(broker, message):
+            return
+
         self.backend.write_dequeued(message.message_id)
 
     def after_process_message(
@@ -39,10 +45,23 @@ class TaskLogsMiddleware(Middleware):
         result: Any = None,
         exception: Optional[BaseException] = None
     ) -> None:
+        if not self.should_log(broker, message):
+            return
+
         if exception is None:
             self.backend.write_completed(message.message_id, result=result)
         else:
             self.backend.write_exception(message.message_id, exception=exception)
 
     def after_nack(self, broker: Broker, message: Message) -> None:
-        self.backend.write_failed(message.message_id)
+        if not self.should_log(broker, message):
+            return
+
+        self.backend.write_exception(message.message_id, exception="Failed")
+
+    def should_log(self, broker: Broker, message: Message) -> bool:
+        actor = broker.get_actor(message.actor_name)
+        should_log = message.options.get("log")
+        if should_log is not None:
+            return should_log
+        return actor.options.get("log") != False

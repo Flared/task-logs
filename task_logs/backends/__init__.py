@@ -3,11 +3,6 @@ from typing import Any
 from datetime import datetime
 
 
-def json_encoder(o: Any) -> Any:
-    if isinstance(o, datetime):
-        return o.isoformat()
-
-
 from .stub import StubBackend
 
 try:

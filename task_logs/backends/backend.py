@@ -22,7 +22,6 @@ LogType = Union[
     Literal["dequeued"],
     Literal["completed"],
     Literal["exception"],
-    Literal["failed"],
 ]
 
 
@@ -94,9 +93,6 @@ class WriterBackend(abc.ABC):
             )
         )
 
-    def write_failed(self, task_id: str) -> None:
-        self.write(FailedLog(type="failed", task_id=task_id, timestamp=datetime.now()))
-
 
 class ReaderBackend(abc.ABC):
     def enqueued(self) -> List[EnqueuedLog]:
@@ -110,9 +106,6 @@ class ReaderBackend(abc.ABC):
 
     def exception(self) -> List[ExceptionLog]:
         return cast(List[ExceptionLog], self.logs_by_type("exception"))
-
-    def failed(self) -> List[FailedLog]:
-        return self.logs_by_type("failed")
 
     @abc.abstractmethod
     def find_task(self, task_id: str) -> List[Log]:
