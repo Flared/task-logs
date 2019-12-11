@@ -26,7 +26,9 @@ class StubBackend(ReaderBackend, WriterBackend):
 
         super().write_enqueued(task)
 
-    def write_exception(self, task_id: str, *, exception: Union[BaseException, str]) -> None:
+    def write_exception(
+        self, task_id: str, *, exception: Union[BaseException, str]
+    ) -> None:
         if isinstance(exception, BaseException):
             exception = "\n".join(
                 traceback.format_exception(

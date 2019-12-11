@@ -117,7 +117,6 @@ class ElasticsearchBackend(WriterBackend, ReaderBackend):
 
         return self._load_response(response)
 
-
     @classmethod
     def _load_response(cls, response: Dict) -> List[Log]:
         logs: List[Log] = []

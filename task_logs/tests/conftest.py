@@ -39,4 +39,3 @@ def backends():
 @pytest.fixture(params=["elastic", "stub"])
 def backend(request, backends):
     return backends[request.param]()
-
