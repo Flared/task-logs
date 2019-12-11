@@ -26,15 +26,15 @@ TASK_LOGS_MAPPING = {
         "task_id": {"type": "keyword"},
         "type": {"type": "keyword"},
         "result": {"enabled": False, "type": "object"},
-        "exception": {"enabled": False, "type": "object"},
+        "exception": {"type": "text"},
         "task": {
             "properties": {
                 "queue": {"type": "keyword"},
-                "task_id": {"type": "keyword"},
+                "task_id": {"enabled": False, "type": "object"},
                 "task_name": {"type": "keyword"},
                 "task_path": {"type": "keyword"},
                 "execute_at": {"type": "date"},
-                "args": {"type": "keyword"},
+                "args": {"enabled": False, "type": "object"},
                 "kwargs": {"dynamic": True, "enabled": False, "properties": {}},
                 "options": {"dynamic": True, "enabled": False, "properties": {}},
             }
@@ -85,10 +85,26 @@ class ElasticsearchBackend(WriterBackend, ReaderBackend):
         self.es.indices.put_template(name="task-logs-template", body=TASK_LOGS_TEMPLATE)
 
     def search(self, query: str) -> List[Log]:
-        raise NotImplementedError
+        response = self.es.search(
+            index=INDEX_PREFIX + "*",
+            body={
+                "query": {"query_string": {"query": query}},
+                "sort": [{"timestamp": {"order": "desc"}}],
+            },
+        )
+
+        return self._load_response(response)
 
     def find_task(self, task_id: str) -> List[Log]:
-        raise NotImplementedError
+        response = self.es.search(
+            index=INDEX_PREFIX + "*",
+            body={
+                "query": {"term": {"task_id": task_id}},
+                "sort": [{"timestamp": {"order": "desc"}}],
+            },
+        )
+
+        return self._load_response(response)
 
     def logs_by_type(self, type: str) -> List[Log]:
         response = self.es.search(
@@ -99,9 +115,14 @@ class ElasticsearchBackend(WriterBackend, ReaderBackend):
             },
         )
 
+        return self._load_response(response)
+
+
+    @classmethod
+    def _load_response(cls, response: Dict) -> List[Log]:
         logs: List[Log] = []
         for hit in response["hits"].get("hits", []):
-            log = self._load_datetimes(hit["_source"])
+            log = cls._load_datetimes(hit["_source"])
             logs.append(log)
 
         return logs

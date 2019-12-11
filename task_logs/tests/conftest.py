@@ -17,6 +17,7 @@ def check_elastic(connections):
         es.indices.delete("task-logs-*")
 
 
+@pytest.fixture
 def elastic_backend():
     connections = [ELASTICSEARCH_URL]
     check_elastic(connections)
@@ -38,3 +39,4 @@ def backends():
 @pytest.fixture(params=["elastic", "stub"])
 def backend(request, backends):
     return backends[request.param]()
+
