@@ -46,6 +46,8 @@ def test_elastic_backend(elastic_backend):
     assert _ids(elastic_backend.search("simple_task")) == [
         "e308282a-5f6a-4553-a2c0-8612368ab917",
         "2fffe3e4-144d-40e1-9014-34a298c65bfc",
+        "2fffe3e4-144d-40e1-9014-34a298c65bfc",
+        "2fffe3e4-144d-40e1-9014-34a298c65bfc",
     ]
 
     assert _ids(elastic_backend.search("type:dequeued")) == [

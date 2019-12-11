@@ -19,6 +19,10 @@ def check_elastic(connections):
 
 @pytest.fixture
 def elastic_backend():
+    return _elastic_backend()
+
+
+def _elastic_backend():
     connections = [ELASTICSEARCH_URL]
     check_elastic(connections)
     return ElasticsearchBackend(connections, force_refresh=True)
@@ -31,7 +35,7 @@ def stub_backend():
 @pytest.fixture
 def backends():
     return {
-        "elastic": elastic_backend,
+        "elastic": _elastic_backend,
         "stub": stub_backend,
     }
 

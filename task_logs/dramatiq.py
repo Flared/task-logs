@@ -19,23 +19,25 @@ class TaskLogsMiddleware(Middleware):
             return
 
         self.backend.write_enqueued(
-            {
+            task_id=message.message_id,
+            task_name=message.actor_name,
+            task={
                 "queue": message.queue_name,
-                "task_id": message.message_id,
-                "task_name": message.actor_name,
                 "task_path": None,
                 "execute_at": None,
                 "args": message.args,
                 "kwargs": message.kwargs,
                 "options": message.options,
-            }
+            },
         )
 
     def before_process_message(self, broker: Broker, message: Message) -> None:
         if not self.should_log(broker, message):
             return
 
-        self.backend.write_dequeued(message.message_id)
+        self.backend.write_dequeued(
+            task_id=message.message_id, task_name=message.actor_name
+        )
 
     def after_process_message(
         self,
@@ -49,15 +51,23 @@ class TaskLogsMiddleware(Middleware):
             return
 
         if exception is None:
-            self.backend.write_completed(message.message_id, result=result)
+            self.backend.write_completed(
+                task_id=message.message_id, task_name=message.actor_name, result=result
+            )
         else:
-            self.backend.write_exception(message.message_id, exception=exception)
+            self.backend.write_exception(
+                task_id=message.message_id,
+                task_name=message.actor_name,
+                exception=exception,
+            )
 
     def after_nack(self, broker: Broker, message: Message) -> None:
         if not self.should_log(broker, message):
             return
 
-        self.backend.write_exception(message.message_id, exception="Failed")
+        self.backend.write_exception(
+            task_id=message.message_id, task_name=message.actor_name, exception="Failed"
+        )
 
     def should_log(self, broker: Broker, message: Message) -> bool:
         actor = broker.get_actor(message.actor_name)

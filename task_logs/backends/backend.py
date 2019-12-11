@@ -6,10 +6,8 @@ from typing import Union, List, Dict, Any, Optional, cast
 from typing_extensions import TypedDict, Literal
 
 
-class Task(TypedDict):
+class TaskDetails(TypedDict):
     queue: str
-    task_id: str
-    task_name: str
     task_path: Optional[str]
     execute_at: Optional[datetime]
     args: List[Any]
@@ -29,10 +27,11 @@ class Log(TypedDict):
     type: LogType
     timestamp: datetime
     task_id: str
+    task_name: str
 
 
 class EnqueuedLog(Log):
-    task: Task
+    task: TaskDetails
 
 
 class DequeuedLog(Log):
@@ -56,38 +55,48 @@ class WriterBackend(abc.ABC):
     def write(self, log: Log) -> None:
         raise NotImplementedError
 
-    def write_enqueued(self, task: Task) -> None:
+    def write_enqueued(
+        self, *, task_id: str, task_name: str, task: TaskDetails
+    ) -> None:
         self.write(
             EnqueuedLog(
                 type="enqueued",
                 task=task,
-                task_id=task["task_id"],
+                task_id=task_id,
+                task_name=task_name,
                 timestamp=datetime.now(),
             )
         )
 
-    def write_dequeued(self, task_id: str) -> None:
+    def write_dequeued(self, *, task_id: str, task_name: str) -> None:
         self.write(
-            DequeuedLog(type="dequeued", task_id=task_id, timestamp=datetime.now())
+            DequeuedLog(
+                type="dequeued",
+                task_id=task_id,
+                task_name=task_name,
+                timestamp=datetime.now(),
+            )
         )
 
-    def write_completed(self, task_id: str, *, result: Any) -> None:
+    def write_completed(self, *, task_id: str, task_name: str, result: Any) -> None:
         self.write(
             CompletedLog(
                 type="completed",
                 task_id=task_id,
+                task_name=task_name,
                 result=result,
                 timestamp=datetime.now(),
             )
         )
 
     def write_exception(
-        self, task_id: str, *, exception: Union[BaseException, str]
+        self, *, task_id: str, task_name: str, exception: Union[BaseException, str]
     ) -> None:
         self.write(
             ExceptionLog(
                 type="exception",
                 task_id=task_id,
+                task_name=task_name,
                 exception=exception,
                 timestamp=datetime.now(),
             )

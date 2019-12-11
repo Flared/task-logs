@@ -24,20 +24,20 @@ TASK_LOGS_MAPPING = {
     "properties": {
         "timestamp": {"type": "date"},
         "task_id": {"type": "keyword"},
+        "task_name": {"type": "keyword"},
         "type": {"type": "keyword"},
         "result": {"enabled": False, "type": "object"},
         "exception": {"type": "text"},
         "task": {
+            "dynamic": "false",
             "properties": {
                 "queue": {"type": "keyword"},
-                "task_id": {"enabled": False, "type": "object"},
-                "task_name": {"type": "keyword"},
                 "task_path": {"type": "keyword"},
                 "execute_at": {"type": "date"},
                 "args": {"enabled": False, "type": "object"},
-                "kwargs": {"dynamic": True, "enabled": False, "properties": {}},
-                "options": {"dynamic": True, "enabled": False, "properties": {}},
-            }
+                "kwargs": {"enabled": False, "type": "object"},
+                "options": {"enabled": False, "type": "object"},
+            },
         },
     },
 }

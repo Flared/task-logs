@@ -43,10 +43,9 @@ def test_dramatiq_completion(broker, worker, backend, frozen_time):
             "type": "enqueued",
             "timestamp": datetime.now(),
             "task_id": message.message_id,
+            "task_name": "simple_task",
             "task": {
                 "queue": "test",
-                "task_id": message.message_id,
-                "task_name": "simple_task",
                 "task_path": None,
                 "execute_at": None,
                 "args": ["a"],
@@ -66,6 +65,7 @@ def test_dramatiq_completion(broker, worker, backend, frozen_time):
     assert backend.dequeued() == [
         {
             "task_id": message.message_id,
+            "task_name": "simple_task",
             "timestamp": datetime.now(),
             "type": "dequeued",
         }
@@ -73,6 +73,7 @@ def test_dramatiq_completion(broker, worker, backend, frozen_time):
     assert backend.completed() == [
         {
             "task_id": message.message_id,
+            "task_name": "simple_task",
             "timestamp": datetime.now(),
             "result": "hello",
             "type": "completed",
@@ -92,10 +93,9 @@ def test_dramatiq_error(broker, worker, backend, frozen_time):
             "type": "enqueued",
             "timestamp": datetime.now(),
             "task_id": message.message_id,
+            "task_name": "simple_task_error",
             "task": {
                 "queue": "test",
-                "task_id": message.message_id,
-                "task_name": "simple_task_error",
                 "task_path": None,
                 "execute_at": None,
                 "args": [],
@@ -115,6 +115,7 @@ def test_dramatiq_error(broker, worker, backend, frozen_time):
     assert backend.dequeued() == [
         {
             "task_id": message.message_id,
+            "task_name": "simple_task_error",
             "timestamp": datetime.now(),
             "type": "dequeued",
         }
@@ -125,6 +126,7 @@ def test_dramatiq_error(broker, worker, backend, frozen_time):
     assert exceptions == [
         {
             "task_id": message.message_id,
+            "task_name": "simple_task_error",
             "timestamp": datetime.now(),
             "type": "exception",
         }

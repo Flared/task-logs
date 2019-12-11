@@ -3,7 +3,7 @@ from typing import List, cast, Union
 from .backend import (
     ReaderBackend,
     WriterBackend,
-    Task,
+    TaskDetails,
     Log,
     EnqueuedLog,
     DequeuedLog,
@@ -20,14 +20,16 @@ class StubBackend(ReaderBackend, WriterBackend):
     def write(self, log: Log) -> None:
         self.logs.append(log)
 
-    def write_enqueued(self, task: Task) -> None:
+    def write_enqueued(
+        self, *, task_id: str, task_name: str, task: TaskDetails
+    ) -> None:
         if task.get("args") is not None:
             task["args"] = list(task["args"])
 
-        super().write_enqueued(task)
+        super().write_enqueued(task_id=task_id, task_name=task_name, task=task)
 
     def write_exception(
-        self, task_id: str, *, exception: Union[BaseException, str]
+        self, *, task_id: str, task_name: str, exception: Union[BaseException, str]
     ) -> None:
         if isinstance(exception, BaseException):
             exception = "\n".join(
@@ -35,7 +37,9 @@ class StubBackend(ReaderBackend, WriterBackend):
                     etype=type(exception), value=exception, tb=exception.__traceback__
                 )
             )
-        return super().write_exception(task_id, exception=exception)
+        return super().write_exception(
+            task_id=task_id, task_name=task_name, exception=exception
+        )
 
     def search(self, query: str) -> List[Log]:
         return [l for l in self.logs if query in str(l)]
