@@ -46,7 +46,7 @@ def test_dramatiq_completion(broker, worker, backend, frozen_time):
             "task_name": "simple_task",
             "task": {
                 "queue": "test",
-                "task_path": None,
+                "task_path": "task_logs.tests.test_dramatiq.test_dramatiq_completion.<locals>.simple_task",
                 "execute_at": None,
                 "args": ["a"],
                 "kwargs": {"b": "b"},
@@ -96,7 +96,7 @@ def test_dramatiq_error(broker, worker, backend, frozen_time):
             "task_name": "simple_task_error",
             "task": {
                 "queue": "test",
-                "task_path": None,
+                "task_path": "task_logs.tests.test_dramatiq.test_dramatiq_error.<locals>.simple_task_error",
                 "execute_at": None,
                 "args": [],
                 "kwargs": {},

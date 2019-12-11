@@ -116,12 +116,15 @@ class ReaderBackend(abc.ABC):
     def exception(self) -> List[ExceptionLog]:
         return cast(List[ExceptionLog], self.logs_by_type("exception"))
 
+    def all(self) -> List[Log]:
+        return self.logs_by_type(None)
+
     @abc.abstractmethod
     def find_task(self, task_id: str) -> List[Log]:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def logs_by_type(self, type: str) -> List[Log]:
+    def logs_by_type(self, type: Optional[str]) -> List[Log]:
         raise NotImplementedError
 
     @abc.abstractmethod

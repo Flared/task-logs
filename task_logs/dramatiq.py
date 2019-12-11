@@ -1,3 +1,4 @@
+import inspect
 from typing import Optional, Set, Any
 from datetime import datetime
 
@@ -18,12 +19,15 @@ class TaskLogsMiddleware(Middleware):
         if not self.should_log(broker, message):
             return
 
+        actor = broker.get_actor(message.actor_name)
+        task_path = actor.fn.__module__ + "." + actor.fn.__qualname__
+
         self.backend.write_enqueued(
             task_id=message.message_id,
             task_name=message.actor_name,
             task={
                 "queue": message.queue_name,
-                "task_path": None,
+                "task_path": task_path,
                 "execute_at": None,
                 "args": message.args,
                 "kwargs": message.kwargs,

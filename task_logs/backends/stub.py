@@ -1,5 +1,5 @@
 import traceback
-from typing import List, cast, Union
+from typing import List, cast, Union, Optional
 from .backend import (
     ReaderBackend,
     WriterBackend,
@@ -47,5 +47,7 @@ class StubBackend(ReaderBackend, WriterBackend):
     def find_task(self, task_id: str) -> List[Log]:
         return [l for l in self.logs if l["task_id"] == task_id]
 
-    def logs_by_type(self, type: str) -> List[Log]:
-        return [l for l in self.logs if l["type"] == type]
+    def logs_by_type(self, type: Optional[str]) -> List[Log]:
+        if type:
+            return [l for l in self.logs if l["type"] == type]
+        return self.logs

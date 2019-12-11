@@ -106,13 +106,14 @@ class ElasticsearchBackend(WriterBackend, ReaderBackend):
 
         return self._load_response(response)
 
-    def logs_by_type(self, type: str) -> List[Log]:
+    def logs_by_type(self, type: Optional[str]) -> List[Log]:
+        query: Dict = {"match_all": {}}
+        if type is not None:
+            query = {"term": {"type": type}}
+
         response = self.es.search(
             index=INDEX_PREFIX + "*",
-            body={
-                "query": {"term": {"type": type}},
-                "sort": [{"timestamp": {"order": "desc"}}],
-            },
+            body={"query": query, "sort": [{"timestamp": {"order": "desc"}}],},
         )
 
         return self._load_response(response)

@@ -17,6 +17,7 @@ def test_elastic_backend(elastic_backend):
     assert len(elastic_backend.dequeued()) == 4
     assert len(elastic_backend.completed()) == 2
     assert len(elastic_backend.exception()) == 2
+    assert len(elastic_backend.all()) == 10
 
     assert _ids(elastic_backend.search("timestamp:[2000-01-01T00:05:00Z TO *]")) == [
         "bbed01b8-226c-411e-9d0f-5e4fa4445bf7"

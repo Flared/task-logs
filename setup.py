@@ -14,6 +14,7 @@ setup(
     author_email="opensource@flare.systems",
     url="http://github.com/Flared/task-logs/",
     packages=find_packages(),
+    package_data={"task_logs": ["py.typed"]},
     classifiers=[
         "Development Status :: 4 - Beta",
         "Environment :: Web Environment",
