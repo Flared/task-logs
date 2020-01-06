@@ -18,7 +18,7 @@ class StubBackend(ReaderBackend, WriterBackend):
         self.logs: List[Log] = []
 
     def write(self, log: Log) -> None:
-        self.logs.append(log)
+        self.logs.insert(0, log)
 
     def write_enqueued(
         self, *, task_id: str, task_name: str, task: TaskDetails
