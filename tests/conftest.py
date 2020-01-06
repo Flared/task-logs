@@ -1,6 +1,8 @@
 import pytest
-from .config import ELASTICSEARCH_URL, CI
+
 from task_logs.backends import ElasticsearchBackend, StubBackend
+
+from .config import CI, ELASTICSEARCH_URL
 
 
 def check_elastic(connections):

@@ -1,16 +1,7 @@
 import traceback
-from typing import List, cast, Union, Optional
-from .backend import (
-    ReaderBackend,
-    WriterBackend,
-    TaskDetails,
-    Log,
-    EnqueuedLog,
-    DequeuedLog,
-    CompletedLog,
-    ExceptionLog,
-    FailedLog,
-)
+from typing import List, Optional, Union
+
+from .backend import Log, ReaderBackend, TaskDetails, WriterBackend
 
 
 class StubBackend(ReaderBackend, WriterBackend):
@@ -41,13 +32,13 @@ class StubBackend(ReaderBackend, WriterBackend):
             task_id=task_id, task_name=task_name, exception=exception
         )
 
-    def search(self, query: str) -> List[Log]:
+    def search(self, query: str) -> List[Log]:  # pragma: no cover
         return [l for l in self.logs if query in str(l)]
 
-    def find_task(self, task_id: str) -> List[Log]:
+    def find_task(self, task_id: str) -> List[Log]:  # pragma: no cover
         return [l for l in self.logs if l["task_id"] == task_id]
 
-    def logs_by_type(self, type: Optional[str]) -> List[Log]:
+    def logs_by_type(self, type: Optional[str]) -> List[Log]:  # pragma: no cover
         if type:
             return [l for l in self.logs if l["type"] == type]
         return self.logs

@@ -1,21 +1,11 @@
 import traceback
 from datetime import datetime
-from typing import IO, Any, Union, Iterable, List, Optional, Dict, overload, cast
-from typing_extensions import Literal
+from typing import Any, Dict, List, Optional, cast
 
 from elasticsearch import Elasticsearch
 from elasticsearch.serializer import JSONSerializer
 
-from .backend import (
-    WriterBackend,
-    ReaderBackend,
-    Log,
-    EnqueuedLog,
-    DequeuedLog,
-    CompletedLog,
-    ExceptionLog,
-    FailedLog,
-)
+from .backend import Log, ReaderBackend, WriterBackend
 
 INDEX_PREFIX = "task-logs-"
 
@@ -107,19 +97,19 @@ class ElasticsearchBackend(WriterBackend, ReaderBackend):
         return self._load_response(response)
 
     def logs_by_type(self, type: Optional[str]) -> List[Log]:
-        query: Dict = {"match_all": {}}
+        query: Dict[str, Any] = {"match_all": {}}
         if type is not None:
             query = {"term": {"type": type}}
 
         response = self.es.search(
             index=INDEX_PREFIX + "*",
-            body={"query": query, "sort": [{"timestamp": {"order": "desc"}}],},
+            body={"query": query, "sort": [{"timestamp": {"order": "desc"}}]},
         )
 
         return self._load_response(response)
 
     @classmethod
-    def _load_response(cls, response: Dict) -> List[Log]:
+    def _load_response(cls, response: Dict[str, Any]) -> List[Log]:
         logs: List[Log] = []
         for hit in response["hits"].get("hits", []):
             log = cls._load_datetimes(hit["_source"])
@@ -128,7 +118,7 @@ class ElasticsearchBackend(WriterBackend, ReaderBackend):
         return logs
 
     @staticmethod
-    def _load_datetimes(hit: Dict) -> Log:
+    def _load_datetimes(hit: Dict[str, Any]) -> Log:
         hit["timestamp"] = datetime.strptime(hit["timestamp"][:19], "%Y-%m-%dT%H:%M:%S")
         task = hit.get("task")
         if task and task.get("execute_at"):

@@ -1,8 +1,6 @@
-import inspect
-from typing import Optional, Set, Any
-from datetime import datetime
+from typing import Any, Optional, Set
 
-from dramatiq import Middleware, Broker, Message
+from dramatiq import Broker, Message, Middleware
 
 from .backends.backend import WriterBackend
 
@@ -75,7 +73,7 @@ class TaskLogsMiddleware(Middleware):
 
     def should_log(self, broker: Broker, message: Message) -> bool:
         actor = broker.get_actor(message.actor_name)
-        should_log = message.options.get("log")
+        should_log: Optional[bool] = message.options.get("log")
         if should_log is not None:
             return should_log
-        return actor.options.get("log") != False
+        return actor.options.get("log") is not False

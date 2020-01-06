@@ -31,7 +31,7 @@ def fake_factory(backend):
         task={
             "queue": "test_queue",
             "task_path": "task_logs.tests.other_task",
-            "execute_at": None,
+            "execute_at": "2019-01-01T01:01:01",
             "args": ["a"],
             "kwargs": {"b": 2},
             "options": {},
