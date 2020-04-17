@@ -1,11 +1,13 @@
 import abc
+import dataclasses
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union, cast
 
-from typing_extensions import Literal, TypedDict
+from typing_extensions import Literal
 
 
-class TaskDetails(TypedDict):
+@dataclasses.dataclass
+class JobDetails:
     queue: str
     task_path: Optional[str]
     execute_at: Optional[datetime]
@@ -22,29 +24,40 @@ LogType = Union[
 ]
 
 
-class Log(TypedDict):
+@dataclasses.dataclass
+class Task:
+    id: str
+
+
+@dataclasses.dataclass
+class Log:
     type: LogType
     timestamp: datetime
+    job_id: str
     task_id: str
-    task_name: str
 
 
+@dataclasses.dataclass
 class EnqueuedLog(Log):
-    task: TaskDetails
+    job: JobDetails
 
 
+@dataclasses.dataclass
 class DequeuedLog(Log):
     pass
 
 
+@dataclasses.dataclass
 class CompletedLog(Log):
     result: Any
 
 
+@dataclasses.dataclass
 class ExceptionLog(Log):
     exception: Union[BaseException, str]
 
 
+@dataclasses.dataclass
 class FailedLog(Log):
     pass
 
@@ -54,48 +67,46 @@ class WriterBackend(abc.ABC):
     def write(self, log: Log) -> None:
         raise NotImplementedError
 
-    def write_enqueued(
-        self, *, task_id: str, task_name: str, task: TaskDetails
-    ) -> None:
+    def write_enqueued(self, *, job_id: str, task_id: str, job: JobDetails) -> None:
         self.write(
             EnqueuedLog(
                 type="enqueued",
-                task=task,
+                job=job,
+                job_id=job_id,
                 task_id=task_id,
-                task_name=task_name,
                 timestamp=datetime.now(),
             )
         )
 
-    def write_dequeued(self, *, task_id: str, task_name: str) -> None:
+    def write_dequeued(self, *, job_id: str, task_id: str) -> None:
         self.write(
             DequeuedLog(
                 type="dequeued",
+                job_id=job_id,
                 task_id=task_id,
-                task_name=task_name,
                 timestamp=datetime.now(),
             )
         )
 
-    def write_completed(self, *, task_id: str, task_name: str, result: Any) -> None:
+    def write_completed(self, *, job_id: str, task_id: str, result: Any) -> None:
         self.write(
             CompletedLog(
                 type="completed",
+                job_id=job_id,
                 task_id=task_id,
-                task_name=task_name,
                 result=result,
                 timestamp=datetime.now(),
             )
         )
 
     def write_exception(
-        self, *, task_id: str, task_name: str, exception: Union[BaseException, str]
+        self, *, job_id: str, task_id: str, exception: Union[BaseException, str]
     ) -> None:
         self.write(
             ExceptionLog(
                 type="exception",
+                job_id=job_id,
                 task_id=task_id,
-                task_name=task_name,
                 exception=exception,
                 timestamp=datetime.now(),
             )
@@ -107,7 +118,7 @@ class ReaderBackend(abc.ABC):
         return cast(List[EnqueuedLog], self.logs_by_type("enqueued"))
 
     def dequeued(self) -> List[DequeuedLog]:
-        return self.logs_by_type("dequeued")
+        return cast(List[DequeuedLog], self.logs_by_type("dequeued"))
 
     def completed(self) -> List[CompletedLog]:
         return cast(List[CompletedLog], self.logs_by_type("completed"))
@@ -119,7 +130,7 @@ class ReaderBackend(abc.ABC):
         return self.logs_by_type(None)
 
     @abc.abstractmethod
-    def find_task(self, task_id: str) -> List[Log]:
+    def find_job(self, job_id: str) -> List[Log]:
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -128,4 +139,7 @@ class ReaderBackend(abc.ABC):
 
     @abc.abstractmethod
     def search(self, query: str) -> List[Log]:
+        raise NotImplementedError
+
+    def list_task(self) -> List[Task]:
         raise NotImplementedError

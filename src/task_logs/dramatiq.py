@@ -2,7 +2,7 @@ from typing import Any, Optional, Set
 
 from dramatiq import Broker, Message, Middleware
 
-from .backends.backend import WriterBackend
+from .backends.backend import JobDetails, WriterBackend
 
 
 class TaskLogsMiddleware(Middleware):
@@ -21,16 +21,16 @@ class TaskLogsMiddleware(Middleware):
         task_path = actor.fn.__module__ + "." + actor.fn.__qualname__
 
         self.backend.write_enqueued(
-            task_id=message.message_id,
-            task_name=message.actor_name,
-            task={
-                "queue": message.queue_name,
-                "task_path": task_path,
-                "execute_at": None,
-                "args": message.args,
-                "kwargs": message.kwargs,
-                "options": message.options,
-            },
+            job_id=message.message_id,
+            task_id=message.actor_name,
+            job=JobDetails(
+                queue=message.queue_name,
+                task_path=task_path,
+                execute_at=None,
+                args=message.args,
+                kwargs=message.kwargs,
+                options=message.options,
+            ),
         )
 
     def before_process_message(self, broker: Broker, message: Message) -> None:
@@ -38,7 +38,7 @@ class TaskLogsMiddleware(Middleware):
             return
 
         self.backend.write_dequeued(
-            task_id=message.message_id, task_name=message.actor_name
+            job_id=message.message_id, task_id=message.actor_name
         )
 
     def after_process_message(
@@ -54,12 +54,12 @@ class TaskLogsMiddleware(Middleware):
 
         if exception is None:
             self.backend.write_completed(
-                task_id=message.message_id, task_name=message.actor_name, result=result
+                job_id=message.message_id, task_id=message.actor_name, result=result
             )
         else:
             self.backend.write_exception(
-                task_id=message.message_id,
-                task_name=message.actor_name,
+                job_id=message.message_id,
+                task_id=message.actor_name,
                 exception=exception,
             )
 
@@ -68,7 +68,7 @@ class TaskLogsMiddleware(Middleware):
             return
 
         self.backend.write_exception(
-            task_id=message.message_id, task_name=message.actor_name, exception="Failed"
+            job_id=message.message_id, task_id=message.actor_name, exception="Failed"
         )
 
     def should_log(self, broker: Broker, message: Message) -> bool:

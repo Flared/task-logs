@@ -1,11 +1,21 @@
+import dataclasses
 import traceback
 from datetime import datetime
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, List, Optional
 
 from elasticsearch import Elasticsearch
 from elasticsearch.serializer import JSONSerializer
 
-from .backend import Log, ReaderBackend, WriterBackend
+from .backend import (
+    CompletedLog,
+    DequeuedLog,
+    EnqueuedLog,
+    ExceptionLog,
+    FailedLog,
+    Log,
+    ReaderBackend,
+    WriterBackend,
+)
 
 INDEX_PREFIX = "task-logs-"
 
@@ -13,12 +23,12 @@ TASK_LOGS_MAPPING = {
     "dynamic": "strict",
     "properties": {
         "timestamp": {"type": "date"},
+        "job_id": {"type": "keyword"},
         "task_id": {"type": "keyword"},
-        "task_name": {"type": "keyword"},
         "type": {"type": "keyword"},
         "result": {"enabled": False, "type": "object"},
         "exception": {"type": "text"},
-        "task": {
+        "job": {
             "dynamic": "false",
             "properties": {
                 "queue": {"type": "keyword"},
@@ -36,6 +46,14 @@ TASK_LOGS_TEMPLATE = {
     "index_patterns": [INDEX_PREFIX + "*"],
     "mappings": TASK_LOGS_MAPPING,
     "version": 1,
+}
+
+LOG_TYPE_FACTORIES = {
+    "enqueued": EnqueuedLog,
+    "dequeued": DequeuedLog,
+    "completed": CompletedLog,
+    "exception": ExceptionLog,
+    "failed": FailedLog,
 }
 
 
@@ -68,8 +86,10 @@ class ElasticsearchBackend(WriterBackend, ReaderBackend):
         self._init()
 
     def write(self, log: Log) -> None:
-        index = INDEX_PREFIX + log["timestamp"].strftime(self.index_postfix)
-        self.es.index(index=index, body=log, refresh=self.force_refresh)
+        index = INDEX_PREFIX + log.timestamp.strftime(self.index_postfix)
+        self.es.index(
+            index=index, body=dataclasses.asdict(log), refresh=self.force_refresh
+        )
 
     def _init(self) -> None:
         self.es.indices.put_template(name="task-logs-template", body=TASK_LOGS_TEMPLATE)
@@ -85,11 +105,11 @@ class ElasticsearchBackend(WriterBackend, ReaderBackend):
 
         return self._load_response(response)
 
-    def find_task(self, task_id: str) -> List[Log]:
+    def find_job(self, job_id: str) -> List[Log]:
         response = self.es.search(
             index=INDEX_PREFIX + "*",
             body={
-                "query": {"term": {"task_id": task_id}},
+                "query": {"term": {"job_id": job_id}},
                 "sort": [{"timestamp": {"order": "desc"}}],
             },
         )
@@ -112,17 +132,18 @@ class ElasticsearchBackend(WriterBackend, ReaderBackend):
     def _load_response(cls, response: Dict[str, Any]) -> List[Log]:
         logs: List[Log] = []
         for hit in response["hits"].get("hits", []):
-            log = cls._load_datetimes(hit["_source"])
+            log_data = cls._load_datetimes(hit["_source"])
+            log = LOG_TYPE_FACTORIES[log_data["type"]](**log_data)
             logs.append(log)
 
         return logs
 
     @staticmethod
-    def _load_datetimes(hit: Dict[str, Any]) -> Log:
+    def _load_datetimes(hit: Dict[str, Any]) -> Dict[str, Any]:
         hit["timestamp"] = datetime.strptime(hit["timestamp"][:19], "%Y-%m-%dT%H:%M:%S")
-        task = hit.get("task")
-        if task and task.get("execute_at"):
-            task["execute_at"] = datetime.strptime(
-                task["execute_at"], "%Y-%m-%dT%H:%M:%S"
+        job = hit.get("job")
+        if job and job.get("execute_at"):
+            job["execute_at"] = datetime.strptime(
+                job["execute_at"], "%Y-%m-%dT%H:%M:%S"
             )
-        return cast(Log, hit)
+        return hit

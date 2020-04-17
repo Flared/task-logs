@@ -45,6 +45,7 @@ extra_dependencies["dev"] = extra_dependencies["test"] + [
     "flake8",
     "flake8-bugbear",
     "flake8-quotes",
+    "flake8-mypy",
     "isort",
     "mypy",
     "black",

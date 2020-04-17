@@ -1,7 +1,7 @@
 import traceback
 from typing import List, Optional, Union
 
-from .backend import Log, ReaderBackend, TaskDetails, WriterBackend
+from .backend import JobDetails, Log, ReaderBackend, Task, WriterBackend
 
 
 class StubBackend(ReaderBackend, WriterBackend):
@@ -11,16 +11,14 @@ class StubBackend(ReaderBackend, WriterBackend):
     def write(self, log: Log) -> None:
         self.logs.insert(0, log)
 
-    def write_enqueued(
-        self, *, task_id: str, task_name: str, task: TaskDetails
-    ) -> None:
-        if task.get("args") is not None:
-            task["args"] = list(task["args"])
+    def write_enqueued(self, *, job_id: str, task_id: str, job: JobDetails) -> None:
+        if job.args is not None:
+            job.args = list(job.args)
 
-        super().write_enqueued(task_id=task_id, task_name=task_name, task=task)
+        super().write_enqueued(job_id=job_id, task_id=task_id, job=job)
 
     def write_exception(
-        self, *, task_id: str, task_name: str, exception: Union[BaseException, str]
+        self, *, job_id: str, task_id: str, exception: Union[BaseException, str]
     ) -> None:
         if isinstance(exception, BaseException):
             exception = "\n".join(
@@ -29,16 +27,19 @@ class StubBackend(ReaderBackend, WriterBackend):
                 )
             )
         return super().write_exception(
-            task_id=task_id, task_name=task_name, exception=exception
+            job_id=job_id, task_id=task_id, exception=exception
         )
 
     def search(self, query: str) -> List[Log]:  # pragma: no cover
         return [l for l in self.logs if query in str(l)]
 
-    def find_task(self, task_id: str) -> List[Log]:  # pragma: no cover
-        return [l for l in self.logs if l["task_id"] == task_id]
+    def find_job(self, job_id: str) -> List[Log]:  # pragma: no cover
+        return [l for l in self.logs if l.job_id == job_id]
 
     def logs_by_type(self, type: Optional[str]) -> List[Log]:  # pragma: no cover
         if type:
-            return [l for l in self.logs if l["type"] == type]
+            return [l for l in self.logs if l.type == type]
         return self.logs
+
+    def list_task(self) -> List[Task]:
+        return list({Task(id=l.task_id) for l in self.logs})

@@ -6,6 +6,13 @@ from dramatiq import Middleware, Worker
 from dramatiq.brokers.stub import StubBroker
 from freezegun import freeze_time
 
+from task_logs.backends.backend import (
+    CompletedLog,
+    DequeuedLog,
+    EnqueuedLog,
+    ExceptionLog,
+    JobDetails,
+)
 from task_logs.dramatiq import TaskLogsMiddleware
 
 
@@ -38,23 +45,23 @@ def test_dramatiq_completion(broker, worker, backend, frozen_time):
     message = simple_task.send("a", b="b")
 
     assert backend.enqueued() == [
-        {
-            "type": "enqueued",
-            "timestamp": datetime.now(),
-            "task_id": message.message_id,
-            "task_name": "simple_task",
-            "task": {
-                "queue": "test",
-                "task_path": (
+        EnqueuedLog(
+            type="enqueued",
+            timestamp=datetime.now(),
+            job_id=message.message_id,
+            task_id="simple_task",
+            job=JobDetails(
+                queue="test",
+                task_path=(
                     "tests.test_dramatiq.test_dramatiq_completion.<locals>"
                     ".simple_task"
                 ),
-                "execute_at": None,
-                "args": ["a"],
-                "kwargs": {"b": "b"},
-                "options": {},
-            },
-        }
+                execute_at=None,
+                args=["a"],
+                kwargs={"b": "b"},
+                options={},
+            ),
+        )
     ]
 
     assert backend.dequeued() == []
@@ -65,21 +72,21 @@ def test_dramatiq_completion(broker, worker, backend, frozen_time):
     worker.join()
 
     assert backend.dequeued() == [
-        {
-            "task_id": message.message_id,
-            "task_name": "simple_task",
-            "timestamp": datetime.now(),
-            "type": "dequeued",
-        }
+        DequeuedLog(
+            job_id=message.message_id,
+            task_id="simple_task",
+            timestamp=datetime.now(),
+            type="dequeued",
+        )
     ]
     assert backend.completed() == [
-        {
-            "task_id": message.message_id,
-            "task_name": "simple_task",
-            "timestamp": datetime.now(),
-            "result": "hello",
-            "type": "completed",
-        }
+        CompletedLog(
+            job_id=message.message_id,
+            task_id="simple_task",
+            timestamp=datetime.now(),
+            result="hello",
+            type="completed",
+        )
     ]
 
 
@@ -100,21 +107,21 @@ def test_dramatiq_failed(broker, worker, backend, frozen_time):
     simple_task_failed.send_with_options(log=False)
 
     assert backend.enqueued() == [
-        {
-            "type": "enqueued",
-            "timestamp": datetime.now(),
-            "task_id": message.message_id,
-            "task_name": "simple_task_failed",
-            "task": {
-                "queue": "test",
-                "task_path": "tests.test_dramatiq.test_dramatiq_failed.<locals>"
+        EnqueuedLog(
+            type="enqueued",
+            timestamp=datetime.now(),
+            job_id=message.message_id,
+            task_id="simple_task_failed",
+            job=JobDetails(
+                queue="test",
+                task_path="tests.test_dramatiq.test_dramatiq_failed.<locals>"
                 ".simple_task_failed",
-                "execute_at": None,
-                "args": [],
-                "kwargs": {},
-                "options": {},
-            },
-        }
+                execute_at=None,
+                args=[],
+                kwargs={},
+                options={},
+            ),
+        )
     ]
 
     assert backend.dequeued() == []
@@ -125,23 +132,25 @@ def test_dramatiq_failed(broker, worker, backend, frozen_time):
     worker.join()
 
     assert backend.dequeued() == [
-        {
-            "task_id": message.message_id,
-            "task_name": "simple_task_failed",
-            "timestamp": datetime.now(),
-            "type": "dequeued",
-        }
+        DequeuedLog(
+            job_id=message.message_id,
+            task_id="simple_task_failed",
+            timestamp=datetime.now(),
+            type="dequeued",
+        )
     ]
     exceptions = backend.exception()
     for exception in exceptions:
-        assert "Failed" in exception.pop("exception")
+        assert "Failed" in exception.exception
+        exception.exception = ""
     assert exceptions == [
-        {
-            "task_id": message.message_id,
-            "task_name": "simple_task_failed",
-            "timestamp": datetime.now(),
-            "type": "exception",
-        }
+        ExceptionLog(
+            job_id=message.message_id,
+            task_id="simple_task_failed",
+            timestamp=datetime.now(),
+            type="exception",
+            exception="",
+        )
     ]
 
 
@@ -153,21 +162,21 @@ def test_dramatiq_error(broker, worker, backend, frozen_time):
     message = simple_task_error.send_with_options(time_limit=10000)
 
     assert backend.enqueued() == [
-        {
-            "type": "enqueued",
-            "timestamp": datetime.now(),
-            "task_id": message.message_id,
-            "task_name": "simple_task_error",
-            "task": {
-                "queue": "test",
-                "task_path": "tests.test_dramatiq.test_dramatiq_error.<locals>"
+        EnqueuedLog(
+            type="enqueued",
+            timestamp=datetime.now(),
+            job_id=message.message_id,
+            task_id="simple_task_error",
+            job=JobDetails(
+                queue="test",
+                task_path="tests.test_dramatiq.test_dramatiq_error.<locals>"
                 ".simple_task_error",
-                "execute_at": None,
-                "args": [],
-                "kwargs": {},
-                "options": {"time_limit": 10000},
-            },
-        }
+                execute_at=None,
+                args=[],
+                kwargs={},
+                options={"time_limit": 10000},
+            ),
+        )
     ]
 
     assert backend.dequeued() == []
@@ -178,23 +187,25 @@ def test_dramatiq_error(broker, worker, backend, frozen_time):
     worker.join()
 
     assert backend.dequeued() == [
-        {
-            "task_id": message.message_id,
-            "task_name": "simple_task_error",
-            "timestamp": datetime.now(),
-            "type": "dequeued",
-        }
+        DequeuedLog(
+            job_id=message.message_id,
+            task_id="simple_task_error",
+            timestamp=datetime.now(),
+            type="dequeued",
+        )
     ]
     exceptions = backend.exception()
     for exception in exceptions:
-        assert 'ValueError("Expected")' in exception.pop("exception")
+        assert 'ValueError("Expected")' in exception.exception
+        exception.exception = ""
     assert exceptions == [
-        {
-            "task_id": message.message_id,
-            "task_name": "simple_task_error",
-            "timestamp": datetime.now(),
-            "type": "exception",
-        }
+        ExceptionLog(
+            job_id=message.message_id,
+            task_id="simple_task_error",
+            timestamp=datetime.now(),
+            type="exception",
+            exception="",
+        )
     ]
 
 
