@@ -12,6 +12,7 @@ from task_logs.backends.backend import (
     EnqueuedLog,
     ExceptionLog,
     JobDetails,
+    LogType,
 )
 from task_logs.dramatiq import TaskLogsMiddleware
 
@@ -46,7 +47,7 @@ def test_dramatiq_completion(broker, worker, backend, frozen_time):
 
     assert backend.enqueued() == [
         EnqueuedLog(
-            type="enqueued",
+            type=LogType.ENQUEUED,
             timestamp=datetime.now(),
             job_id=message.message_id,
             task_id="simple_task",
@@ -76,7 +77,7 @@ def test_dramatiq_completion(broker, worker, backend, frozen_time):
             job_id=message.message_id,
             task_id="simple_task",
             timestamp=datetime.now(),
-            type="dequeued",
+            type=LogType.DEQUEUED,
         )
     ]
     assert backend.completed() == [
@@ -85,7 +86,7 @@ def test_dramatiq_completion(broker, worker, backend, frozen_time):
             task_id="simple_task",
             timestamp=datetime.now(),
             result="hello",
-            type="completed",
+            type=LogType.COMPLETED,
         )
     ]
 
@@ -108,7 +109,7 @@ def test_dramatiq_failed(broker, worker, backend, frozen_time):
 
     assert backend.enqueued() == [
         EnqueuedLog(
-            type="enqueued",
+            type=LogType.ENQUEUED,
             timestamp=datetime.now(),
             job_id=message.message_id,
             task_id="simple_task_failed",
@@ -136,7 +137,7 @@ def test_dramatiq_failed(broker, worker, backend, frozen_time):
             job_id=message.message_id,
             task_id="simple_task_failed",
             timestamp=datetime.now(),
-            type="dequeued",
+            type=LogType.DEQUEUED,
         )
     ]
     exceptions = backend.exception()
@@ -148,7 +149,7 @@ def test_dramatiq_failed(broker, worker, backend, frozen_time):
             job_id=message.message_id,
             task_id="simple_task_failed",
             timestamp=datetime.now(),
-            type="exception",
+            type=LogType.EXCEPTION,
             exception="",
         )
     ]
@@ -163,7 +164,7 @@ def test_dramatiq_error(broker, worker, backend, frozen_time):
 
     assert backend.enqueued() == [
         EnqueuedLog(
-            type="enqueued",
+            type=LogType.ENQUEUED,
             timestamp=datetime.now(),
             job_id=message.message_id,
             task_id="simple_task_error",
@@ -191,7 +192,7 @@ def test_dramatiq_error(broker, worker, backend, frozen_time):
             job_id=message.message_id,
             task_id="simple_task_error",
             timestamp=datetime.now(),
-            type="dequeued",
+            type=LogType.DEQUEUED,
         )
     ]
     exceptions = backend.exception()
@@ -203,7 +204,7 @@ def test_dramatiq_error(broker, worker, backend, frozen_time):
             job_id=message.message_id,
             task_id="simple_task_error",
             timestamp=datetime.now(),
-            type="exception",
+            type=LogType.EXCEPTION,
             exception="",
         )
     ]

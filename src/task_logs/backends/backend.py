@@ -1,9 +1,8 @@
 import abc
 import dataclasses
+import enum
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union, cast
-
-from typing_extensions import Literal
 
 
 @dataclasses.dataclass
@@ -16,12 +15,12 @@ class JobDetails:
     options: Dict[str, Any]
 
 
-LogType = Union[
-    Literal["enqueued"],
-    Literal["dequeued"],
-    Literal["completed"],
-    Literal["exception"],
-]
+class LogType(str, enum.Enum):
+    ENQUEUED = "enqueued"
+    DEQUEUED = "dequeued"
+    COMPLETED = "completed"
+    EXCEPTION = "exception"
+    FAILED = "failed"
 
 
 @dataclasses.dataclass
@@ -40,6 +39,10 @@ class Log:
 @dataclasses.dataclass
 class EnqueuedLog(Log):
     job: JobDetails
+
+    def __post_init__(self) -> None:
+        if isinstance(self.job, dict):
+            self.job = JobDetails(**self.job)
 
 
 @dataclasses.dataclass
@@ -70,7 +73,7 @@ class WriterBackend(abc.ABC):
     def write_enqueued(self, *, job_id: str, task_id: str, job: JobDetails) -> None:
         self.write(
             EnqueuedLog(
-                type="enqueued",
+                type=LogType.ENQUEUED,
                 job=job,
                 job_id=job_id,
                 task_id=task_id,
@@ -81,7 +84,7 @@ class WriterBackend(abc.ABC):
     def write_dequeued(self, *, job_id: str, task_id: str) -> None:
         self.write(
             DequeuedLog(
-                type="dequeued",
+                type=LogType.DEQUEUED,
                 job_id=job_id,
                 task_id=task_id,
                 timestamp=datetime.now(),
@@ -91,7 +94,7 @@ class WriterBackend(abc.ABC):
     def write_completed(self, *, job_id: str, task_id: str, result: Any) -> None:
         self.write(
             CompletedLog(
-                type="completed",
+                type=LogType.COMPLETED,
                 job_id=job_id,
                 task_id=task_id,
                 result=result,
@@ -104,7 +107,7 @@ class WriterBackend(abc.ABC):
     ) -> None:
         self.write(
             ExceptionLog(
-                type="exception",
+                type=LogType.EXCEPTION,
                 job_id=job_id,
                 task_id=task_id,
                 exception=exception,
@@ -115,16 +118,16 @@ class WriterBackend(abc.ABC):
 
 class ReaderBackend(abc.ABC):
     def enqueued(self) -> List[EnqueuedLog]:
-        return cast(List[EnqueuedLog], self.logs_by_type("enqueued"))
+        return cast(List[EnqueuedLog], self.logs_by_type(LogType.ENQUEUED))
 
     def dequeued(self) -> List[DequeuedLog]:
-        return cast(List[DequeuedLog], self.logs_by_type("dequeued"))
+        return cast(List[DequeuedLog], self.logs_by_type(LogType.DEQUEUED))
 
     def completed(self) -> List[CompletedLog]:
-        return cast(List[CompletedLog], self.logs_by_type("completed"))
+        return cast(List[CompletedLog], self.logs_by_type(LogType.COMPLETED))
 
     def exception(self) -> List[ExceptionLog]:
-        return cast(List[ExceptionLog], self.logs_by_type("exception"))
+        return cast(List[ExceptionLog], self.logs_by_type(LogType.EXCEPTION))
 
     def all(self) -> List[Log]:
         return self.logs_by_type(None)

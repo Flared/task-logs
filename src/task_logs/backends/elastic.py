@@ -13,6 +13,7 @@ from .backend import (
     ExceptionLog,
     FailedLog,
     Log,
+    LogType,
     ReaderBackend,
     WriterBackend,
 )
@@ -49,11 +50,11 @@ TASK_LOGS_TEMPLATE = {
 }
 
 LOG_TYPE_FACTORIES = {
-    "enqueued": EnqueuedLog,
-    "dequeued": DequeuedLog,
-    "completed": CompletedLog,
-    "exception": ExceptionLog,
-    "failed": FailedLog,
+    LogType.ENQUEUED: EnqueuedLog,
+    LogType.DEQUEUED: DequeuedLog,
+    LogType.COMPLETED: CompletedLog,
+    LogType.EXCEPTION: ExceptionLog,
+    LogType.FAILED: FailedLog,
 }
 
 
