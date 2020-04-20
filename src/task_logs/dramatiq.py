@@ -47,7 +47,7 @@ class TaskLogsMiddleware(Middleware):
         message: Message,
         *,
         result: Any = None,
-        exception: Optional[BaseException] = None
+        exception: Optional[BaseException] = None,
     ) -> None:
         if not self.should_log(broker, message):
             return

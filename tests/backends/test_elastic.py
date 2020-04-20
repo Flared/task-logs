@@ -1,15 +1,20 @@
+from typing import List
+
+from task_logs.backends.backend import Log, LogType
+from task_logs.backends.elastic import ElasticsearchBackend
+
 from ..utils import fake_factory
 
 
-def _ids(tasks):
-    return [task["task_id"] for task in tasks]
+def _ids(tasks: List[Log]) -> List[str]:
+    return [task.task_id for task in tasks]
 
 
-def _types(tasks):
-    return [task["type"] for task in tasks]
+def _types(tasks: List[Log]) -> List[LogType]:
+    return [task.type for task in tasks]
 
 
-def test_elastic_backend(elastic_backend):
+def test_elastic_backend(elastic_backend: ElasticsearchBackend) -> None:
     fake_factory(elastic_backend)
 
     assert len(elastic_backend.enqueued()) == 3
@@ -54,6 +59,8 @@ def test_elastic_backend(elastic_backend):
         "bbed01b8-226c-411e-9d0f-5e4fa4445bf7"
     ] * 3 + ["2fffe3e4-144d-40e1-9014-34a298c65bfc"]
 
-    assert _types(
-        elastic_backend.find_task("2fffe3e4-144d-40e1-9014-34a298c65bfc")
-    ) == ["completed", "dequeued", "enqueued"]
+    assert _types(elastic_backend.find_job("2fffe3e4-144d-40e1-9014-34a298c65bfc")) == [
+        "completed",
+        "dequeued",
+        "enqueued",
+    ]

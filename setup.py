@@ -72,8 +72,6 @@ setup(
     extras_require=extra_dependencies,
     zip_safe=False,
     classifiers=[
-        "Programming Language :: Python :: 3.5",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3 :: Only",
         "Development Status :: 4 - Beta",

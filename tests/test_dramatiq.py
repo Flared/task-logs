@@ -1,8 +1,10 @@
 from datetime import datetime
+from typing import Any, Generator, Optional
 
 import dramatiq
 import pytest
-from dramatiq import Middleware, Worker
+from dramatiq import Broker, Message, Middleware, Worker
+from dramatiq.backends.backend import WriterBackend
 from dramatiq.brokers.stub import StubBroker
 from freezegun import freeze_time
 
@@ -18,7 +20,7 @@ from task_logs.dramatiq import TaskLogsMiddleware
 
 
 @pytest.fixture()
-def broker(backend):
+def broker(backend: WriterBackend) -> StubBroker:
     stub_broker = StubBroker(middleware=[TaskLogsMiddleware(backend=backend)])
     stub_broker.emit_after("process_boot")
     dramatiq.set_broker(stub_broker)
@@ -26,21 +28,23 @@ def broker(backend):
 
 
 @pytest.fixture()
-def worker(broker):
+def worker(broker: StubBroker) -> Generator[Worker, None, None]:
     worker = Worker(broker, worker_timeout=100)
     yield worker
     worker.stop()
 
 
 @pytest.fixture()
-def frozen_time():
+def frozen_time() -> Generator[None, None, None]:
     with freeze_time("2019-01-14T12:45:23"):
         yield
 
 
-def test_dramatiq_completion(broker, worker, backend, frozen_time):
+def test_dramatiq_completion(
+    broker: StubBroker, worker: Worker, backend: WriterBackend, frozen_time: Any
+) -> None:
     @dramatiq.actor(queue_name="test")
-    def simple_task(a, b):
+    def simple_task(a: str, b: str) -> str:
         return "hello"
 
     message = simple_task.send("a", b="b")
@@ -91,15 +95,22 @@ def test_dramatiq_completion(broker, worker, backend, frozen_time):
     ]
 
 
-def test_dramatiq_failed(broker, worker, backend, frozen_time):
+def test_dramatiq_failed(
+    broker: Broker, worker: Worker, backend: WriterBackend, frozen_time: Any
+) -> None:
     class FailMessage(Middleware):
         def after_process_message(
-            self, broker, message, *, result=None, exception=None
-        ):
+            self,
+            broker: Broker,
+            message: Message,
+            *,
+            result: Any = None,
+            exception: Optional[BaseException] = None,
+        ) -> None:
             message.fail()
 
     @dramatiq.actor(queue_name="test")
-    def simple_task_failed():
+    def simple_task_failed() -> None:
         return
 
     broker.add_middleware(FailMessage())
@@ -155,9 +166,11 @@ def test_dramatiq_failed(broker, worker, backend, frozen_time):
     ]
 
 
-def test_dramatiq_error(broker, worker, backend, frozen_time):
+def test_dramatiq_error(
+    broker: Broker, worker: Worker, backend: WriterBackend, frozen_time: Any
+) -> None:
     @dramatiq.actor(queue_name="test")
-    def simple_task_error():
+    def simple_task_error() -> None:
         raise ValueError("Expected")
 
     message = simple_task_error.send_with_options(time_limit=10000)
@@ -197,7 +210,7 @@ def test_dramatiq_error(broker, worker, backend, frozen_time):
     ]
     exceptions = backend.exception()
     for exception in exceptions:
-        assert 'ValueError("Expected")' in exception.exception
+        assert 'ValueError: "Expected"' in exception.exception
         exception.exception = ""
     assert exceptions == [
         ExceptionLog(
@@ -224,9 +237,16 @@ def test_dramatiq_error(broker, worker, backend, frozen_time):
         (True, True, True),
     ],
 )
-def test_disabled_log(broker, worker, backend, actor_log, task_log, log_expected):
+def test_disabled_log(
+    broker: Broker,
+    worker: Worker,
+    backend: WriterBackend,
+    actor_log: Optional[bool],
+    task_log: Optional[bool],
+    log_expected: Optional[bool],
+) -> None:
     @dramatiq.actor(queue_name="test", log=actor_log)
-    def simple_task_with_log_option():
+    def simple_task_with_log_option() -> None:
         pass
 
     simple_task_with_log_option.send_with_options(log=task_log)

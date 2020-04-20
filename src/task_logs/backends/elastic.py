@@ -76,7 +76,7 @@ class ElasticsearchBackend(WriterBackend, ReaderBackend):
         *,
         index_postfix: str = "%Y.%m.%d",
         force_refresh: bool = False,
-        **options: Any
+        **options: Any,
     ) -> None:
         self.es = Elasticsearch(
             connections, serializer=JSONSerializerWithError(), **options

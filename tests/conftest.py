@@ -1,3 +1,5 @@
+from typing import Any, List
+
 import pytest
 
 from task_logs.backends import ElasticsearchBackend, StubBackend
@@ -5,7 +7,7 @@ from task_logs.backends import ElasticsearchBackend, StubBackend
 from .config import CI, ELASTICSEARCH_URL
 
 
-def check_elastic(connections):
+def check_elastic(connections: List[str]) -> None:
     try:
         from elasticsearch import Elasticsearch
 
@@ -20,22 +22,22 @@ def check_elastic(connections):
 
 
 @pytest.fixture
-def elastic_backend():
+def elastic_backend() -> ElasticsearchBackend:
     return _elastic_backend()
 
 
-def _elastic_backend():
+def _elastic_backend() -> ElasticsearchBackend:
     connections = [ELASTICSEARCH_URL]
     check_elastic(connections)
     return ElasticsearchBackend(connections, force_refresh=True)
 
 
-def stub_backend():
+def stub_backend() -> StubBackend:
     return StubBackend()
 
 
 @pytest.fixture
-def backends():
+def backends() -> Any:
     return {
         "elastic": _elastic_backend,
         "stub": stub_backend,
@@ -43,5 +45,5 @@ def backends():
 
 
 @pytest.fixture(params=["elastic", "stub"])
-def backend(request, backends):
+def backend(request: Any, backends: Any) -> Any:
     return backends[request.param]()
