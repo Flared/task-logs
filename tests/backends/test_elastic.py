@@ -33,7 +33,7 @@ def test_elastic_backend(elastic_backend: ElasticsearchBackend) -> None:
     )
 
     assert (
-        _ids(elastic_backend.search("task_id:bbed01b8-226c-411e-9d0f-5e4fa4445bf7"))
+        _ids(elastic_backend.search("job_id:bbed01b8-226c-411e-9d0f-5e4fa4445bf7"))
         == ["bbed01b8-226c-411e-9d0f-5e4fa4445bf7"] * 7
     )
 
