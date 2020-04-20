@@ -210,7 +210,7 @@ def test_dramatiq_error(
     ]
     exceptions = backend.exception()
     for exception in exceptions:
-        assert 'ValueError: "Expected"' in exception.exception
+        assert '"Expected"' in exception.exception
         exception.exception = ""
     assert exceptions == [
         ExceptionLog(
