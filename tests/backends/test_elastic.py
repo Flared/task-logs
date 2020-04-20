@@ -7,7 +7,7 @@ from ..utils import fake_factory
 
 
 def _ids(tasks: List[Log]) -> List[str]:
-    return [task.task_id for task in tasks]
+    return [task.job_id for task in tasks]
 
 
 def _types(tasks: List[Log]) -> List[LogType]:
