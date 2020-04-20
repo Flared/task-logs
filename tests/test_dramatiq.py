@@ -4,7 +4,6 @@ from typing import Any, Generator, Optional
 import dramatiq
 import pytest
 from dramatiq import Broker, Message, Middleware, Worker
-from dramatiq.backends.backend import WriterBackend
 from dramatiq.brokers.stub import StubBroker
 from freezegun import freeze_time
 
@@ -15,6 +14,7 @@ from task_logs.backends.backend import (
     ExceptionLog,
     JobDetails,
     LogType,
+    WriterBackend,
 )
 from task_logs.dramatiq import TaskLogsMiddleware
 
